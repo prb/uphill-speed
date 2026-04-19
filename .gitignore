@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Hypothesis test database
+.hypothesis/
+
+# pytest cache
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Sample data (local GPX files for testing)
+sample-data/
+
+# Scratch PNGs in root (generated chart output)
+/*.png

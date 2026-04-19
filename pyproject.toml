@@ -1,0 +1,22 @@
+[project]
+name = "gpx-segment-report"
+version = "0.1.0"
+description = "Parse GPX 1.1 track files and produce a tabular report of climbing and descending segments."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "gpxpy>=1.6.2",
+    "matplotlib>=3.10.3",
+]
+
+[project.scripts]
+gpx-segment-report = "gpx_segment_report.cli:main"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.151.12",
+    "pytest>=9.0.3",
+]
+
+[tool.uv]
+exclude-newer = "2026-04-11T00:00:00Z"
