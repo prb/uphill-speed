@@ -6,4 +6,4 @@ This file contains coding standards and practices for use within this project.
 - *Use `uv`.*  Use `uv` for all dependency management purposes including Python interpreter, libraries, and execution of scripts or parts of the progam.
 - *Use dependency cooldowns in `uv`.*  Explicitly set the `exclude-newer` option in `tool.uv` to `P3D`.
 - *Use `pytest` for tests.*  Doctests are acceptable only where necessary for good documentation.
-
+- *Use `hypothesis` for property-based testing.*  Particularly where the specifications or code is of a declarative nature, use property-based testing to verify correctness.
