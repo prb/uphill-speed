@@ -670,3 +670,173 @@ def test_no_consecutive_same_direction(
             f"Consecutive segments {i} and {i + 1} share the same type "
             f"({segments[i].segment_type.value}), violating the merge invariant"
         )
+
+
+# Feature: douglas-peucker-segments, Property 1: Classification matches elevation direction
+@given(
+    elevations=st.lists(
+        st.floats(min_value=-2000.0, max_value=9000.0, allow_nan=False, allow_infinity=False),
+        min_size=2,
+        max_size=200,
+    ),
+    min_height=st.floats(min_value=0.1, max_value=5000.0, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=200)
+def test_dp_classification_matches_elevation_direction(
+    elevations: list[float], min_height: float
+) -> None:
+    """Every ASCENT has end_elevation > start_elevation; every DESCENT has end_elevation < start_elevation."""
+    points = _make_track_points(elevations)
+    segments = identify_segments(points, min_height, SKI_TOURING)
+
+    for seg in segments:
+        if seg.segment_type == SegmentType.ASCENT:
+            assert seg.end_elevation > seg.start_elevation, (
+                f"ASCENT segment should have end > start, "
+                f"got {seg.end_elevation} <= {seg.start_elevation}"
+            )
+        else:
+            assert seg.end_elevation < seg.start_elevation, (
+                f"DESCENT segment should have end < start, "
+                f"got {seg.end_elevation} >= {seg.start_elevation}"
+            )
+
+
+# Feature: douglas-peucker-segments, Property 3: No consecutive same-direction segments
+@given(
+    elevations=st.lists(
+        st.floats(min_value=-2000.0, max_value=9000.0, allow_nan=False, allow_infinity=False),
+        min_size=2,
+        max_size=200,
+    ),
+    min_height=st.floats(min_value=0.1, max_value=5000.0, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=200)
+def test_dp_no_consecutive_same_direction(
+    elevations: list[float], min_height: float
+) -> None:
+    """No two adjacent returned segments share the same segment_type."""
+    points = _make_track_points(elevations)
+    segments = identify_segments(points, min_height, SKI_TOURING)
+
+    for i in range(len(segments) - 1):
+        assert segments[i].segment_type != segments[i + 1].segment_type, (
+            f"Consecutive segments {i} and {i + 1} share the same type "
+            f"({segments[i].segment_type.value})"
+        )
+
+
+# Feature: douglas-peucker-segments, Property 6: Monotonic tracks produce exactly one segment
+@given(
+    num_points=st.integers(min_value=2, max_value=200),
+    start_elevation=st.floats(
+        min_value=-1000.0, max_value=4000.0, allow_nan=False, allow_infinity=False
+    ),
+    min_height=st.floats(
+        min_value=0.1, max_value=500.0, allow_nan=False, allow_infinity=False
+    ),
+    ascending=st.booleans(),
+    data=st.data(),
+)
+@settings(max_examples=200)
+def test_dp_monotonic_tracks_produce_one_segment(
+    num_points: int,
+    start_elevation: float,
+    min_height: float,
+    ascending: bool,
+    data: st.DataObject,
+) -> None:
+    """Strictly monotonic elevation sequences with total change >= min_height produce exactly 1 segment."""
+    # The gap-trimming stage uses flatness_threshold=3.0 m and
+    # time_window=60 s.  With 1-second point spacing a 60-point window
+    # must have elevation range > 3.0 m.  Using a minimum step of 0.1 m
+    # guarantees any 60-point window spans at least 6.0 m, well above
+    # the threshold, so the trimmer never removes points.
+    steps = data.draw(
+        st.lists(
+            st.floats(min_value=0.1, max_value=100.0, allow_nan=False, allow_infinity=False),
+            min_size=num_points - 1,
+            max_size=num_points - 1,
+        )
+    )
+
+    # Build strictly monotonic elevations.
+    elevations = [start_elevation]
+    for step in steps:
+        if ascending:
+            elevations.append(elevations[-1] + step)
+        else:
+            elevations.append(elevations[-1] - step)
+
+    total_change = abs(elevations[-1] - elevations[0])
+
+    # Only assert when total change meets the min_height threshold.
+    from hypothesis import assume
+
+    assume(total_change >= min_height)
+
+    points = _make_track_points(elevations)
+    segments = identify_segments(points, min_height, SKI_TOURING)
+
+    assert len(segments) == 1, (
+        f"Expected exactly 1 segment for monotonic track, got {len(segments)}. "
+        f"Total change: {total_change}, min_height: {min_height}, "
+        f"ascending: {ascending}"
+    )
+
+    expected_type = SegmentType.ASCENT if ascending else SegmentType.DESCENT
+    assert segments[0].segment_type == expected_type, (
+        f"Expected {expected_type.value} but got {segments[0].segment_type.value}"
+    )
+
+
+# Feature: douglas-peucker-segments, Property 7: RDP simplification is idempotent
+@given(
+    elevations=st.lists(
+        st.floats(min_value=-2000.0, max_value=9000.0, allow_nan=False, allow_infinity=False),
+        min_size=2,
+        max_size=200,
+    ),
+    epsilon=st.floats(min_value=0.1, max_value=5000.0, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=200)
+def test_rdp_simplify_idempotent(
+    elevations: list[float],
+    epsilon: float,
+) -> None:
+    """Applying _rdp_simplify twice produces the same retained indices as once."""
+    from gpx_segment_report.segments import _rdp_simplify
+
+    # Build (index, elevation) pairs, matching how identify_segments calls RDP.
+    pairs = [(float(i), e) for i, e in enumerate(elevations)]
+
+    # First application.
+    indices_once = _rdp_simplify(pairs, epsilon)
+
+    # Build the simplified subset and apply RDP again.
+    simplified_pairs = [pairs[i] for i in indices_once]
+    indices_twice_local = _rdp_simplify(simplified_pairs, epsilon)
+
+    # Map local indices back to original indices for comparison.
+    indices_twice = [indices_once[i] for i in indices_twice_local]
+
+    assert indices_once == indices_twice, (
+        f"RDP is not idempotent: first pass retained {indices_once}, "
+        f"second pass retained {indices_twice} (epsilon={epsilon})"
+    )
+
+
+def test_perpendicular_distance_degenerate() -> None:
+    """When line_start == line_end, return Euclidean distance to the point."""
+    from math import hypot
+
+    from gpx_segment_report.segments import _perpendicular_distance
+
+    # Coincident endpoints at the origin — distance is just hypot of the point.
+    assert _perpendicular_distance((3.0, 4.0), (0.0, 0.0), (0.0, 0.0)) == hypot(3.0, 4.0)
+
+    # Coincident endpoints away from the origin.
+    assert _perpendicular_distance((1.0, 1.0), (5.0, 5.0), (5.0, 5.0)) == hypot(-4.0, -4.0)
+
+    # Point exactly at the degenerate line — distance should be 0.
+    assert _perpendicular_distance((7.0, 7.0), (7.0, 7.0), (7.0, 7.0)) == 0.0

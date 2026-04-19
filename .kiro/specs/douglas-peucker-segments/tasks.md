@@ -21,13 +21,13 @@ Replace the internals of `identify_segments()` in `gpx_segment_report/segments.p
     - Uses `_perpendicular_distance` from task 1.1
     - _Requirements: 1.1, 1.3, 1.4_
 
-  - [ ] 1.3 Write property test for RDP idempotency
+  - [x] 1.3 Write property test for RDP idempotency
     - **Property 7: RDP simplification is idempotent**
     - Applying `_rdp_simplify` twice produces the same retained indices as applying it once
     - Generator: random `(index, elevation)` pair lists, random epsilon
     - **Validates: Requirement 1.1**
 
-  - [ ] 1.4 Write unit test for `_perpendicular_distance` degenerate case
+  - [x] 1.4 Write unit test for `_perpendicular_distance` degenerate case
     - Test that when `line_start == line_end`, the function returns Euclidean distance to the point
     - _Requirements: 1.3_
 
@@ -54,20 +54,20 @@ Replace the internals of `identify_segments()` in `gpx_segment_report/segments.p
   - Run `uv run pytest tests/test_segments.py` and verify all 4 existing property tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Add new property-based tests
-  - [ ] 4.1 Write property test for classification matches elevation direction
+- [x] 4. Add new property-based tests
+  - [x] 4.1 Write property test for classification matches elevation direction
     - **Property 1: Classification matches elevation direction**
     - Every ASCENT has `end_elevation > start_elevation`; every DESCENT has `end_elevation < start_elevation`
     - Generator: random elevation lists (size 2–200), random min_height
     - **Validates: Requirements 2.1, 2.2, 2.3**
 
-  - [ ] 4.2 Write property test for no consecutive same-direction segments
+  - [x] 4.2 Write property test for no consecutive same-direction segments
     - **Property 3: No consecutive same-direction segments**
     - No two adjacent returned segments share the same `segment_type`
     - Generator: random elevation lists, random min_height
     - **Validates: Requirement 3.2**
 
-  - [ ] 4.3 Write property test for monotonic tracks produce one segment
+  - [x] 4.3 Write property test for monotonic tracks produce one segment
     - **Property 6: Monotonic tracks produce exactly one segment**
     - Strictly monotonic elevation sequences with total change ≥ min_height → exactly 1 segment
     - Generator: strictly increasing/decreasing elevation sequences
