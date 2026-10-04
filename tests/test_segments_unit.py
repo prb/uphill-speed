@@ -21,7 +21,7 @@ def _make_track_points(elevations: list[float]) -> list[TrackPoint]:
     """Build a list of TrackPoint values with 1-second spacing."""
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     return [
-        TrackPoint(timestamp=base + timedelta(seconds=i), elevation=e)
+        TrackPoint(timestamp=base + timedelta(seconds=i), elevation=e, latitude=0.0, longitude=0.0)
         for i, e in enumerate(elevations)
     ]
 
@@ -32,7 +32,7 @@ def _make_track_points_with_spacing(
     """Build TrackPoint values with custom time spacing in seconds."""
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     return [
-        TrackPoint(timestamp=base + timedelta(seconds=i * spacing), elevation=e)
+        TrackPoint(timestamp=base + timedelta(seconds=i * spacing), elevation=e, latitude=0.0, longitude=0.0)
         for i, e in enumerate(elevations)
     ]
 
@@ -147,7 +147,7 @@ def test_trim_no_flat_stretches() -> None:
     # 20m range, well above flatness_threshold=3.0.
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     pts = tuple(
-        TrackPoint(timestamp=base + timedelta(seconds=i * 30), elevation=100.0 + i * 10.0)
+        TrackPoint(timestamp=base + timedelta(seconds=i * 30), elevation=100.0 + i * 10.0, latitude=0.0, longitude=0.0)
         for i in range(10)
     )
     seg = Segment(segment_type=SegmentType.ASCENT, points=pts)
@@ -170,12 +170,12 @@ def test_trim_leading_flat() -> None:
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     # Flat prefix: 7 points at 30s intervals → 180s, elevation ~100m.
     flat = [
-        TrackPoint(timestamp=base + timedelta(seconds=i * 30), elevation=100.0 + (i % 2) * 0.5)
+        TrackPoint(timestamp=base + timedelta(seconds=i * 30), elevation=100.0 + (i % 2) * 0.5, latitude=0.0, longitude=0.0)
         for i in range(7)
     ]
     # Active ascent: 5 points continuing from t=210s, climbing steeply.
     active = [
-        TrackPoint(timestamp=base + timedelta(seconds=210 + i * 10), elevation=120.0 + i * 20.0)
+        TrackPoint(timestamp=base + timedelta(seconds=210 + i * 10), elevation=120.0 + i * 20.0, latitude=0.0, longitude=0.0)
         for i in range(5)
     ]
     pts = tuple(flat + active)
@@ -203,13 +203,13 @@ def test_trim_trailing_flat() -> None:
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     # Active descent: 5 points, 10s apart.
     active = [
-        TrackPoint(timestamp=base + timedelta(seconds=i * 10), elevation=200.0 - i * 20.0)
+        TrackPoint(timestamp=base + timedelta(seconds=i * 10), elevation=200.0 - i * 20.0, latitude=0.0, longitude=0.0)
         for i in range(5)
     ]
     # Flat suffix: 7 points at 30s intervals starting after active, elevation ~100m.
     t_start = 50
     flat = [
-        TrackPoint(timestamp=base + timedelta(seconds=t_start + i * 30), elevation=100.0 + (i % 2) * 0.5)
+        TrackPoint(timestamp=base + timedelta(seconds=t_start + i * 30), elevation=100.0 + (i % 2) * 0.5, latitude=0.0, longitude=0.0)
         for i in range(7)
     ]
     pts = tuple(active + flat)
@@ -237,14 +237,14 @@ def test_trim_both_edges() -> None:
     lead_flat = []
     for i in range(7):
         lead_flat.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0, latitude=0.0, longitude=0.0)
         )
         t += 30.0
     # Active ascent: 5 points, 10s apart.
     active = []
     for i in range(5):
         active.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=150.0 + i * 20.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=150.0 + i * 20.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
     # Trailing flat: 7 points, 30s apart → 180s.
@@ -252,7 +252,7 @@ def test_trim_both_edges() -> None:
     trail_elev = active[-1].elevation + 50.0
     for i in range(7):
         trail_flat.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=trail_elev)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=trail_elev, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -278,7 +278,7 @@ def test_trim_consumes_segment() -> None:
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     # 10 points, 30s apart → 270s total, all at elevation 100m.
     pts = tuple(
-        TrackPoint(timestamp=base + timedelta(seconds=i * 30), elevation=100.0)
+        TrackPoint(timestamp=base + timedelta(seconds=i * 30), elevation=100.0, latitude=0.0, longitude=0.0)
         for i in range(10)
     )
     seg = Segment(segment_type=SegmentType.ASCENT, points=pts)
@@ -310,7 +310,7 @@ def _build_ascent_flat_ascent_segment(
     before: list[TrackPoint] = []
     for i in range(6):
         before.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0 + i * 20.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0 + i * 20.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
 
@@ -319,7 +319,7 @@ def _build_ascent_flat_ascent_segment(
     flat_elev = before[-1].elevation + 10.0
     for i in range(8):
         flat.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=flat_elev + (i % 2) * 0.5)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=flat_elev + (i % 2) * 0.5, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -328,7 +328,7 @@ def _build_ascent_flat_ascent_segment(
     after: list[TrackPoint] = []
     for i in range(6):
         after.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=after_start + i * 20.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=after_start + i * 20.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
 
@@ -368,7 +368,7 @@ def test_interior_split_multiple() -> None:
         pts = []
         for i in range(6):
             pts.append(
-                TrackPoint(timestamp=base + timedelta(seconds=t), elevation=start_elev + i * 20.0)
+                TrackPoint(timestamp=base + timedelta(seconds=t), elevation=start_elev + i * 20.0, latitude=0.0, longitude=0.0)
             )
             t += 10.0
         return pts
@@ -378,7 +378,7 @@ def test_interior_split_multiple() -> None:
         pts = []
         for i in range(8):
             pts.append(
-                TrackPoint(timestamp=base + timedelta(seconds=t), elevation=elev)
+                TrackPoint(timestamp=base + timedelta(seconds=t), elevation=elev, latitude=0.0, longitude=0.0)
             )
             t += 30.0
         return pts
@@ -412,7 +412,7 @@ def test_split_discards_tiny_subsegment() -> None:
     tiny_before: list[TrackPoint] = []
     for i in range(3):
         tiny_before.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0 + i * 2.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0 + i * 2.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
 
@@ -421,7 +421,7 @@ def test_split_discards_tiny_subsegment() -> None:
     flat_elev = 110.0
     for i in range(8):
         flat.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=flat_elev)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=flat_elev, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -430,7 +430,7 @@ def test_split_discards_tiny_subsegment() -> None:
     after_start = flat_elev + 10.0
     for i in range(6):
         after.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=after_start + i * 20.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=after_start + i * 20.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
 
@@ -462,7 +462,7 @@ def test_split_discards_contradictory_classification() -> None:
     descending: list[TrackPoint] = []
     for i in range(6):
         descending.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=300.0 - i * 20.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=300.0 - i * 20.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
 
@@ -471,7 +471,7 @@ def test_split_discards_contradictory_classification() -> None:
     flat_elev = descending[-1].elevation - 10.0
     for i in range(8):
         flat.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=flat_elev)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=flat_elev, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -480,7 +480,7 @@ def test_split_discards_contradictory_classification() -> None:
     asc_start = flat_elev + 10.0
     for i in range(6):
         ascending.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=asc_start + i * 20.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=asc_start + i * 20.0, latitude=0.0, longitude=0.0)
         )
         t += 10.0
 
@@ -521,7 +521,7 @@ def test_merge_after_trim() -> None:
     asc1_pts: list[TrackPoint] = []
     for i in range(5):
         asc1_pts.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0 + i * 25.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=100.0 + i * 25.0, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -529,7 +529,7 @@ def test_merge_after_trim() -> None:
     desc_pts: list[TrackPoint] = []
     for i in range(3):
         desc_pts.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=200.0 - i * 2.5)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=200.0 - i * 2.5, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -537,7 +537,7 @@ def test_merge_after_trim() -> None:
     asc2_pts: list[TrackPoint] = []
     for i in range(5):
         asc2_pts.append(
-            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=195.0 + i * 25.0)
+            TrackPoint(timestamp=base + timedelta(seconds=t), elevation=195.0 + i * 25.0, latitude=0.0, longitude=0.0)
         )
         t += 30.0
 
@@ -569,15 +569,15 @@ def test_non_uniform_timestamps() -> None:
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     # 3 flat points, 1s apart → 2s total duration (way below 120s).
     flat = [
-        TrackPoint(timestamp=base + timedelta(seconds=0), elevation=100.0),
-        TrackPoint(timestamp=base + timedelta(seconds=1), elevation=100.5),
-        TrackPoint(timestamp=base + timedelta(seconds=2), elevation=100.0),
+        TrackPoint(timestamp=base + timedelta(seconds=0), elevation=100.0, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=1), elevation=100.5, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=2), elevation=100.0, latitude=0.0, longitude=0.0),
     ]
     # Active points, widely spaced.
     active = [
-        TrackPoint(timestamp=base + timedelta(seconds=60), elevation=120.0),
-        TrackPoint(timestamp=base + timedelta(seconds=120), elevation=150.0),
-        TrackPoint(timestamp=base + timedelta(seconds=180), elevation=180.0),
+        TrackPoint(timestamp=base + timedelta(seconds=60), elevation=120.0, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=120), elevation=150.0, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=180), elevation=180.0, latitude=0.0, longitude=0.0),
     ]
     pts = tuple(flat + active)
     seg = Segment(segment_type=SegmentType.ASCENT, points=pts)
@@ -598,12 +598,12 @@ def test_short_flat_below_min_duration() -> None:
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     # Leading flat: 4 points, 20s apart → 60s total.
     flat = [
-        TrackPoint(timestamp=base + timedelta(seconds=i * 20), elevation=100.0)
+        TrackPoint(timestamp=base + timedelta(seconds=i * 20), elevation=100.0, latitude=0.0, longitude=0.0)
         for i in range(4)
     ]
     # Active ascent.
     active = [
-        TrackPoint(timestamp=base + timedelta(seconds=80 + i * 30), elevation=130.0 + i * 20.0)
+        TrackPoint(timestamp=base + timedelta(seconds=80 + i * 30), elevation=130.0 + i * 20.0, latitude=0.0, longitude=0.0)
         for i in range(5)
     ]
     pts = tuple(flat + active)
@@ -624,18 +624,128 @@ def test_flat_exactly_at_threshold() -> None:
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     # 3 points: min=100, max=103 → range = 3.0 = flatness_threshold.
     pts = [
-        TrackPoint(timestamp=base + timedelta(seconds=0), elevation=100.0),
-        TrackPoint(timestamp=base + timedelta(seconds=30), elevation=103.0),
-        TrackPoint(timestamp=base + timedelta(seconds=60), elevation=101.0),
+        TrackPoint(timestamp=base + timedelta(seconds=0), elevation=100.0, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=30), elevation=103.0, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=60), elevation=101.0, latitude=0.0, longitude=0.0),
     ]
 
     assert _is_window_flat(pts, 0, 2, flatness_threshold=3.0) is True
 
     # Range of 3.01 should NOT be flat.
     pts_over = [
-        TrackPoint(timestamp=base + timedelta(seconds=0), elevation=100.0),
-        TrackPoint(timestamp=base + timedelta(seconds=30), elevation=103.01),
-        TrackPoint(timestamp=base + timedelta(seconds=60), elevation=101.0),
+        TrackPoint(timestamp=base + timedelta(seconds=0), elevation=100.0, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=30), elevation=103.01, latitude=0.0, longitude=0.0),
+        TrackPoint(timestamp=base + timedelta(seconds=60), elevation=101.0, latitude=0.0, longitude=0.0),
     ]
 
     assert _is_window_flat(pts_over, 0, 2, flatness_threshold=3.0) is False
+
+
+# ---------------------------------------------------------------------------
+# Sport-driven interior-gap merge behavior
+# ski_touring merges across interior flats; trail_running keeps them split.
+# ---------------------------------------------------------------------------
+
+from gpx_segment_report.models import SKI_TOURING, TRAIL_RUNNING
+
+
+def _ascent_flat_ascent_points(
+    flatness_threshold: float = 3.0,
+) -> list[TrackPoint]:
+    """Build a raw point list: ascent → interior flat → ascent.
+
+    The flat stretch spans ~210s (well above the 120s default
+    min_trim_duration) with an elevation range of 0.5 m (below the 3 m
+    default flatness threshold), so it qualifies as an interior flat.
+    The overall shape is monotonically non-decreasing, so RDP keeps it as
+    a single ascent before gap trimming runs.
+    """
+    base = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    t = 0.0
+    pts: list[TrackPoint] = []
+
+    # Ascending bookend: 6 points, 10s apart, +20 m per step (100 → 200).
+    for i in range(6):
+        pts.append(
+            TrackPoint(
+                timestamp=base + timedelta(seconds=t),
+                elevation=100.0 + i * 20.0,
+                latitude=0.0,
+                longitude=0.0,
+            )
+        )
+        t += 10.0
+
+    # Interior flat: 8 points, 30s apart → 210s, elevation ~210 m.
+    flat_elev = pts[-1].elevation + 10.0
+    for i in range(8):
+        pts.append(
+            TrackPoint(
+                timestamp=base + timedelta(seconds=t),
+                elevation=flat_elev + (i % 2) * 0.5,
+                latitude=0.0,
+                longitude=0.0,
+            )
+        )
+        t += 30.0
+
+    # Ascending bookend after the flat: 6 points, 10s apart, +20 m per step.
+    after_start = pts[-1].elevation + 10.0
+    for i in range(6):
+        pts.append(
+            TrackPoint(
+                timestamp=base + timedelta(seconds=t),
+                elevation=after_start + i * 20.0,
+                latitude=0.0,
+                longitude=0.0,
+            )
+        )
+        t += 10.0
+
+    return pts
+
+
+def test_profile_flags_have_expected_values() -> None:
+    """Ski touring merges across interior gaps; trail running does not."""
+    assert SKI_TOURING.merge_across_interior_gaps is True
+    assert TRAIL_RUNNING.merge_across_interior_gaps is False
+
+
+def test_ski_touring_merges_interior_flat() -> None:
+    """ski_touring collapses an ascent/flat/ascent into a single ascent."""
+    points = _ascent_flat_ascent_points()
+    segments = identify_segments(points, min_height=10.0, sport_profile=SKI_TOURING)
+
+    assert len(segments) == 1
+    assert segments[0].segment_type == SegmentType.ASCENT
+
+
+def test_trail_running_splits_interior_flat() -> None:
+    """trail_running keeps the interior flat as a gap, yielding two ascents."""
+    points = _ascent_flat_ascent_points()
+    segments = identify_segments(points, min_height=10.0, sport_profile=TRAIL_RUNNING)
+
+    assert len(segments) == 2
+    assert all(s.segment_type == SegmentType.ASCENT for s in segments)
+    # The split must drop the flat shelf: the second segment starts above
+    # where the first ends.
+    assert segments[1].start_elevation > segments[0].end_elevation
+
+
+def test_sport_only_differs_at_interior_flats() -> None:
+    """With no interior flats both sports agree on the segmentation.
+
+    A strictly steep climb (no window can be flat) produces one ascent
+    regardless of sport, confirming the sport flag changes behavior only
+    when an interior flat is present.
+    """
+    # 1-second spacing, +5 m per step → every 60s window spans ~300 m,
+    # far above the 3 m flatness threshold, so nothing is flat.
+    elevations = [float(i * 5) for i in range(40)]
+    points = _make_track_points(elevations)
+
+    ski = identify_segments(points, min_height=10.0, sport_profile=SKI_TOURING)
+    trail = identify_segments(points, min_height=10.0, sport_profile=TRAIL_RUNNING)
+
+    assert len(ski) == len(trail) == 1
+    assert ski[0].segment_type == trail[0].segment_type == SegmentType.ASCENT

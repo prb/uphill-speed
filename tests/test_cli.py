@@ -89,6 +89,21 @@ def test_default_sport_is_ski_touring() -> None:
     assert result.returncode == 0
 
 
+def test_trail_running_sport_accepted() -> None:
+    """The trail_running sport profile is accepted and produces a report."""
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "gpx_segment_report.cli",
+            "sample-data/Ordering_is_Important.gpx",
+            "--sport", "trail_running",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "start_time" in result.stdout
+
+
 def test_end_to_end_ordering_gpx() -> None:
     """End-to-end: sample GPX produces a valid report with header and data rows."""
     result = subprocess.run(
@@ -197,6 +212,48 @@ def test_unsupported_extension_produces_error(tmp_path: Path) -> None:
     )
     assert result.returncode != 0
     assert "Unsupported output format" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# CLI integration tests for grade columns (Task 5.2)
+# ---------------------------------------------------------------------------
+
+
+def test_cli_output_includes_grade_columns() -> None:
+    """CLI end-to-end: stdout header contains avg_grade and max_grade."""
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "gpx_segment_report.cli",
+            SAMPLE_GPX,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    lines = result.stdout.strip().splitlines()
+    assert len(lines) >= 1
+    header = lines[0]
+    assert "avg_grade" in header
+    assert "max_grade" in header
+
+
+def test_cli_chart_includes_grade_columns(tmp_path: Path) -> None:
+    """CLI with --output SVG: chart reference table has Avg Grade and Max Grade."""
+    chart_path = tmp_path / "chart.svg"
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "gpx_segment_report.cli",
+            SAMPLE_GPX,
+            "--output", str(chart_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert chart_path.exists()
+    svg_content = chart_path.read_text()
+    assert "Avg Grade" in svg_content
+    assert "Max Grade" in svg_content
 
 
 def test_nonexistent_file_exits_nonzero() -> None:
