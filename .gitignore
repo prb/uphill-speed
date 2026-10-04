@@ -23,3 +23,5 @@ sample-data/
 
 # Scratch PNGs in root (generated chart output)
 /*.png
+# Coverage output
+.coverage
