@@ -416,12 +416,21 @@ def _trim_segment_gaps(
     time_window: float,
     min_trim_duration: float,
     min_height: float,
+    merge_across_interior_gaps: bool,
 ) -> list[Segment]:
     """Orchestrate gap trimming: boundary trim → interior split → merge.
 
     Phase 1: Trim leading/trailing flat stretches from each segment.
     Phase 2: Split remaining segments at interior flat stretches.
-    Phase 3: Merge adjacent same-direction segments.
+    Phase 3: Optionally merge adjacent same-direction segments.
+
+    By the time segments reach this function, adjacent same-direction
+    candidates have already been merged in :func:`_build_segments`, so
+    the only same-direction adjacency Phase 3 can encounter is the
+    interior splits produced by Phase 2.  When *merge_across_interior_gaps*
+    is ``False``, Phase 3 is skipped so those interior flats remain as
+    gaps (trail-running semantics); when ``True``, the pieces are merged
+    back into one segment (ski-touring semantics).
     """
     # Phase 1: boundary trimming
     trimmed: list[Segment] = []
@@ -439,7 +448,9 @@ def _trim_segment_gaps(
             )
         )
 
-    # Phase 3: merge adjacent same-direction segments
+    # Phase 3: merge adjacent same-direction segments (sport-dependent)
+    if not merge_across_interior_gaps:
+        return split
     return _merge_adjacent_same_direction(split, all_points)
 
 
@@ -505,10 +516,19 @@ def _build_segments(
     ]
 
 
+# Default gap-trimming parameters (metric / seconds).
+DEFAULT_FLATNESS_THRESHOLD: float = 3.0  # meters
+DEFAULT_TIME_WINDOW: float = 60.0  # seconds
+DEFAULT_MIN_TRIM_DURATION: float = 120.0  # seconds
+
+
 def identify_segments(
     points: list[TrackPoint],
     min_height: float,
     sport_profile: SportProfile,
+    flatness_threshold: float = DEFAULT_FLATNESS_THRESHOLD,
+    time_window: float = DEFAULT_TIME_WINDOW,
+    min_trim_duration: float = DEFAULT_MIN_TRIM_DURATION,
 ) -> list[Segment]:
     """Identify coarse-grained ascending/descending segments.
 
@@ -521,8 +541,17 @@ def identify_segments(
         min_height: Minimum elevation change (in meters) for a portion
             of the track to qualify as a segment.  Also used as the RDP
             epsilon tolerance.
-        sport_profile: Sport-specific configuration (reserved for future
-            sport-specific thresholds).
+        sport_profile: Sport-specific configuration.  Its
+            ``merge_across_interior_gaps`` setting controls whether
+            same-direction segments split by an interior flat are merged
+            back together (ski touring) or left as gaps (trail running).
+        flatness_threshold: Max elevation range (in meters) over a window
+            for it to count as flat.  Lower values detect subtler flats.
+        time_window: Sliding-window duration (in seconds) used to test
+            flatness.
+        min_trim_duration: Minimum duration (in seconds) a flat stretch
+            must span to be trimmed from a boundary or split out of an
+            interior.
 
     Returns:
         A list of :class:`Segment` values sorted by start time.
@@ -536,9 +565,10 @@ def identify_segments(
     segments = _trim_segment_gaps(
         all_points=points,
         segments=segments,
-        flatness_threshold=3.0,
-        time_window=60.0,
-        min_trim_duration=120.0,
+        flatness_threshold=flatness_threshold,
+        time_window=time_window,
+        min_trim_duration=min_trim_duration,
         min_height=min_height,
+        merge_across_interior_gaps=sport_profile.merge_across_interior_gaps,
     )
     return segments

@@ -25,6 +25,8 @@ class TrackPoint:
 
     timestamp: datetime
     elevation: float  # always stored in meters (native GPX unit)
+    latitude: float  # decimal degrees
+    longitude: float  # decimal degrees
 
 
 @dataclass(frozen=True)
@@ -53,15 +55,35 @@ class Segment:
 
 @dataclass(frozen=True)
 class SportProfile:
-    """Sport-specific segmentation configuration."""
+    """Sport-specific segmentation configuration.
+
+    Attributes:
+        name: Identifier for the sport profile.
+        merge_across_interior_gaps: When ``True``, same-direction segments
+            separated by a trimmed interior flat stretch are merged back
+            into a single segment.  This suits ski touring, where a flat
+            traverse mid-climb is still part of the ascent.  When
+            ``False``, interior flats stay as gaps that split the
+            segment, which suits trail running.
+    """
 
     name: str
+    merge_across_interior_gaps: bool = True
 
 
-SKI_TOURING = SportProfile(name="ski_touring")
+SKI_TOURING = SportProfile(
+    name="ski_touring",
+    merge_across_interior_gaps=True,
+)
+
+TRAIL_RUNNING = SportProfile(
+    name="trail_running",
+    merge_across_interior_gaps=False,
+)
 
 SUPPORTED_SPORTS: dict[str, SportProfile] = {
     "ski_touring": SKI_TOURING,
+    "trail_running": TRAIL_RUNNING,
 }
 
 
